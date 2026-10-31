@@ -1,0 +1,31 @@
+name: Build FTrack v8
+on: [workflow_dispatch, push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 17}
+      - name: Unpack and verify
+        run: |
+          ls -la
+          unzip -o ftrack-v8.zip -d app
+          grep -q "FTrack v8" app/www/index.html || { echo "WRONG ZIP: not v8"; exit 1; }
+          echo "Source is FTrack v8"
+      - run: mkdir -p ~/.android && cp app/debug.keystore ~/.android/debug.keystore
+      - run: cd app && npm install && npx cap add android && npx cap sync android
+      - name: Icon and version
+        run: |
+          cd app/android
+          cp -r ../icon/res/. app/src/main/res/
+          sed -i "s/versionCode [0-9]*/versionCode $(date +%s)/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"8.${{ github.run_number }}\"/" app/build.gradle
+          grep -n "versionCode\|versionName" app/build.gradle
+      - run: cd app/android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ftrack-v8-apk
+          path: app/android/app/build/outputs/apk/debug/app-debug.apk
