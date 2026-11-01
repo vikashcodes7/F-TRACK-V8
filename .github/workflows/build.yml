@@ -1,4 +1,4 @@
-name: Build FTrack v8
+name: Build FTrack v9
 on: [workflow_dispatch, push]
 jobs:
   build:
@@ -12,9 +12,10 @@ jobs:
       - name: Unpack and verify
         run: |
           ls -la
-          unzip -o ftrack-v8.zip -d app
-          grep -q "FTrack v8" app/www/index.html || { echo "WRONG ZIP: not v8"; exit 1; }
-          echo "Source is FTrack v8"
+          unzip -o ftrack-v9.zip -d app
+          grep -q "FTrack v9" app/www/index.html || { echo "WRONG ZIP: not v9"; exit 1; }
+          sed -i "s/@@BUILD@@/${{ github.run_number }}/g" app/www/index.html
+          echo "Source is FTrack v9, build ${{ github.run_number }}"
       - run: mkdir -p ~/.android && cp app/debug.keystore ~/.android/debug.keystore
       - run: cd app && npm install && npx cap add android && npx cap sync android
       - name: Icon and version
@@ -22,10 +23,10 @@ jobs:
           cd app/android
           cp -r ../icon/res/. app/src/main/res/
           sed -i "s/versionCode [0-9]*/versionCode $(date +%s)/" app/build.gradle
-          sed -i "s/versionName \"[^\"]*\"/versionName \"8.${{ github.run_number }}\"/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"9.${{ github.run_number }}\"/" app/build.gradle
           grep -n "versionCode\|versionName" app/build.gradle
       - run: cd app/android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: ftrack-v8-apk
+          name: ftrack-v9-apk
           path: app/android/app/build/outputs/apk/debug/app-debug.apk
